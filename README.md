@@ -4,8 +4,6 @@
 - keeps track of already-processed submissions via a Sharepoint List
 
 # TODO
-- test all working, then commit
-- containerize, run in docker
 - set up dev form / excel, dev list, dev jira project, test running both prod and dev with same container
 
 ## environment variables
