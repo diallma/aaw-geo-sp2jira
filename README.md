@@ -5,6 +5,7 @@
 
 # TODO
 - set up dev form / excel, dev list, dev jira project, test running both prod and dev with same container
+- dockerfile / compose.yaml currently set up with defaults for a service, need to research what to change here for a cronjob but it's working
 
 ## environment variables
 The following environment variables are used by the script.
