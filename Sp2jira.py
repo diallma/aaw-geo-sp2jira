@@ -1,44 +1,40 @@
 import os
+import json
 import pandas as pd
 from JiraUtils import JiraUtils
 from SharepointUtils import SharepointUtils
 
-# initialize JIRA
-jira_server = "https://jirab.statcan.ca"
-jira_auth_token = os.environ.get("JIRA_TOKEN")
-jira_project = "DASBOP"
-jira_issue_type = "Epic"
-jira_assignee = "luodan"
-# https://stackoverflow.com/questions/31352317/how-to-pass-a-list-as-an-environment-variable
-jira_watchers = ["zimmshe", "bonedan", "coutann"]
+# initialize JIRA variables and helper class. see README for details.
+# mandatories
+jira_server = os.environ["JIRA_SERVER"] #"https://jirab.statcan.ca"
+jira_auth_token = os.environ["JIRA_TOKEN"]
+jira_project = os.environ["JIRA_PROJECT"] #"DASBOP"
+jira_assignee = os.environ["JIRA_ASSIGNEE"] #"luodan"
+jira_watchers = json.loads(os.environ['JIRA_WATCHERS']) #["zimmshe", "bonedan", "coutann"] https://stackoverflow.com/questions/31352317/how-to-pass-a-list-as-an-environment-variable 
+#optionals
+jira_issue_type = os.environ.get('JIRA_ISSUE_TYPE', "Epic")
+jira_issue_summary = os.environ.get('JIRA_ISSUE_SUMMARY', "DAS Intake Form submission by {0} {1}")
+jira_desc_no_response = os.environ.get('JIRA_ISSUE_DESC_NO_RESPONSE', "No Response")
 
 jira = JiraUtils(jira_server, jira_auth_token, jira_project, jira_issue_type, jira_assignee, jira_watchers)
 
-# sharepoint connection
-client_id = os.environ.get("SHAREPOINT_CLIENT_ID") 
-client_secret = os.environ.get("SHAREPOINT_CLIENT_SECRET")
-site_url = "https://054gc.sharepoint.com/sites/DAaaSD-AllStaff-DADS-Touslesemployes"
-
-#form data
-# xslx can be found at https://054gc.sharepoint.com/:x:/r/sites/DAaaSD-AllStaff-DADS-Touslesemployes/_layouts/15/Doc.aspx?sourcedoc=%7B1C1CBFA7-E2E3-4BCF-8030-94C3A4384715%7D&file=Data%20Analytics%20Services%20(DAS)%20-%20Get%20started.xlsx&action=default&mobileredirect=true&cid=2ac2f7e2-eea5-471f-abe7-3614f5cb5fcd 
-file_url = "/sites/DAaaSD-AllStaff-DADS-Touslesemployes/Shared%20Documents/CSU%20-%20UCS/DAaaS%20Intake%20Form/Data%20Analytics%20Services%20(DAS)%20-%20Get%20started%201.xlsx"
-sheet_name = "Form1"
-
-#processed id list data
-# list can be found at https://054gc.sharepoint.com/sites/DAaaSD-AllStaff-DADS-Touslesemployes/Lists/Intake_form_last_id/AllItems.aspx
-list_title = "Intake_form_processed_ids" #name of the list in sharepoint
-list_column = "Title" #the list column containing ID data
-list_max_return = 5000 #if we ever get more applications than this we'll have to adjust it
+# initialize sharepoint variables and helper class. see README for details.
+#mandatories
+client_id = os.environ['SHAREPOINT_CLIENT_ID']
+client_secret = os.environ['SHAREPOINT_CLIENT_SECRET']
+site_url = os.environ['SHAREPOINT_SITE_URL'] #"https://054gc.sharepoint.com/sites/DAaaSD-AllStaff-DADS-Touslesemployes"
+file_url = os.environ['SHAREPOINT_FILE_URL'] #"/sites/DAaaSD-AllStaff-DADS-Touslesemployes/Shared%20Documents/CSU%20-%20UCS/DAaaS%20Intake%20Form/Data%20Analytics%20Services%20(DAS)%20-%20Get%20started%201.xlsx"
+list_title = os.environ['SHAREPOINT_LIST_TITLE'] #"Intake_form_processed_ids"
+#optionals
+sheet_name = os.environ.get('SHAREPOINT_SHEET_NAME', "Form1")
+ID_COL = os.environ.get('SHAREPOINT_ID_COLUMN', 0)
+FNAME_COL = os.environ.get('SHAREPOINT_FNAME_COLUMN', "First name")
+LNAME_COL = os.environ.get('SHAREPOINT_LNAME_COLUMN', "Last name")
+list_column = os.environ.get('SHAREPOINT_LIST_COLUMN', "Title" )
+list_max_return = os.environ.get('SHAREPOINT_LIST_MAX_RETURN', 5000) #if we ever get more applications than this we'll have to adjust it
 
 sputils = SharepointUtils(client_id, client_secret, site_url, file_url, sheet_name, list_title, list_column, list_max_return)
 
-
-# the column where the form stores the ID value. It seems to get populated only when data is submitted via the form.
-ID_ROW = 0
-FNAME_ROW = "First name"
-LNAME_ROW = "Last name"
-jira_issue_summary = "DAS Intake Form submission by {0} {1}"
-jira_desc_no_response = "No Response"
 
 # get the form data from sharepoint
 df = sputils.get_intake_form_data_as_dataframe()
@@ -47,9 +43,9 @@ df = sputils.get_intake_form_data_as_dataframe()
 issue_count = 0
 for index, row in df.iterrows():
 
-    current_id = row[ID_ROW]
+    current_id = row[ID_COL]
     issue_desc = ""
-    issue_summary = jira_issue_summary.format(row[FNAME_ROW], row[LNAME_ROW])
+    issue_summary = jira_issue_summary.format(row[FNAME_COL], row[LNAME_COL])
     
     for rowindex, rowval in row.items():
         issue_desc += f"{rowindex} : \n"
@@ -63,7 +59,7 @@ for index, row in df.iterrows():
     #print(issue_desc) #left for debug
 
     try:
-        new_issue = jira.create_jira_issue_from_form_data(jira_project, jira_issue_type, jira_assignee, issue_summary, issue_desc, jira_watchers)
+        new_issue = jira.create_jira_issue_from_form_data(issue_summary, issue_desc)
     except:
         print(f"Error creating JIRA issue from ID {current_id}")
     else:
