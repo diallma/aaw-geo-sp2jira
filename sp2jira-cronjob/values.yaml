@@ -5,10 +5,41 @@
 replicaCount: 1
 
 image:
-  repository: nginx
+  repository: aaw-geo/sp2jira  #?
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
+
+job:
+  failedJobsHistoryLimit: 1 
+  successfulJobsHistoryLimit: 2
+  concurrencyPolicy: Forbid
+  restartPolicy: OnFailure
+  # schedule: "*/15 * * * *"  ## Every 15 mn
+  schedule: "0 * * * *" #=> Every hour
+
+secretName: sp2jira-secret 
+environmentVariables:
+  jiraServer: ""
+  jiraToken: ""
+  jiraProject: ""
+  jiraAssignee: ""
+  jiraWatchers: ""
+  jiraIssueType: ""
+  jiraIssueSummary: ""
+  jiraIssueDescNoResponse: ""
+  sharepointClientId: ""
+  sharepointClientSecret: ""
+  sharepointSiteUrl: ""
+  sharepointFileUrl: ""
+  sharepointListTitle: ""
+  sharepointSheetName: ""
+  sharepointIdColumn: ""
+  sharepointFnameColumn: ""
+  sharepointLnameColumn: ""
+  sharepointListColumn: ""
+  sharepointListMaxReturn: ""
+
 
 imagePullSecrets: []
 nameOverride: ""
